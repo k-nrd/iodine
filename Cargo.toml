@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 clap = "2.33.3"
 thiserror = "1.0.21"
+phf = { version = "0.8", features = ["macros"] }
 
 [lib]
 name = "iodine_lib"

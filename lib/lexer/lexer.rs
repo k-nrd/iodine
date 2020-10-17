@@ -1,4 +1,18 @@
 use super::{LexerError, ParseTokenError, Token, TokenKind};
+use phf::phf_map;
+
+static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
+    "const" => TokenKind::Const,
+    "let" => TokenKind::Let,
+    "true" => TokenKind::True,
+    "false" => TokenKind::False,
+    "fn" => TokenKind::Function,
+    "return" => TokenKind::Return,
+    "for" => TokenKind::For,
+    "if" => TokenKind::If,
+    "else" => TokenKind::Else,
+    "print" => TokenKind::Print,
+};
 
 pub struct Lexer<'a> {
     source: &'a [u8],
@@ -7,6 +21,18 @@ pub struct Lexer<'a> {
     line: u32,
     col: u32,
     swap: Option<String>,
+}
+
+fn is_identifier_start(b: u8) -> bool {
+    b.is_ascii_alphabetic() || b == b'_'
+}
+
+fn is_identifier_char(b: u8) -> bool {
+    is_identifier_start(b) || is_digit(b)
+}
+
+fn is_digit(b: u8) -> bool {
+    b.is_ascii_digit()
 }
 
 impl<'a> Lexer<'a> {
@@ -39,15 +65,20 @@ impl<'a> Lexer<'a> {
     }
 
     fn advance(&mut self) -> u8 {
+        if self.peek_n(1) == b'\n' {
+            self.line += 1;
+            self.col = 1;
+        }
         self.current += 1;
         self.source[self.current - 1]
     }
 
-    fn peek(&mut self) -> u8 {
-        if self.at_eof() {
+    fn peek_n(&mut self, lookahead: usize) -> u8 {
+        let index = self.current + lookahead - 1;
+        if index >= self.source.len() {
             return b'\0';
         }
-        self.source[self.current]
+        self.source[index]
     }
 
     fn at_eof(&mut self) -> bool {
@@ -66,13 +97,12 @@ impl<'a> Lexer<'a> {
     }
 
     fn check_comment(&mut self) -> TokenKind {
-        if self.peek() != b'/' {
+        if self.peek_n(1) != b'/' {
             return TokenKind::Slash;
         }
-        while self.peek() != b'\n' && !self.at_eof() {
+        while self.peek_n(1) != b'\n' && !self.at_eof() {
             self.advance();
         }
-        self.line += 1;
         TokenKind::Comment
     }
 
@@ -80,21 +110,14 @@ impl<'a> Lexer<'a> {
         if newline {
             self.line += 1;
         }
-        while self.peek().is_ascii_whitespace() && !self.at_eof() {
-            if self.advance() == b'\n' {
-                self.line += 1;
-                self.col = 1;
-            }
+        while self.peek_n(1).is_ascii_whitespace() && !self.at_eof() {
+            self.advance();
         }
         TokenKind::Whitespace
     }
 
     fn eat_string(&mut self) -> Result<TokenKind, ParseTokenError> {
-        while self.peek() != b'"' && !self.at_eof() {
-            if self.peek() == b'\n' {
-                self.line += 1;
-                self.col = 1;
-            }
+        while self.peek_n(1) != b'"' && !self.at_eof() {
             self.advance();
         }
 
@@ -114,6 +137,50 @@ impl<'a> Lexer<'a> {
         Err(self.parse_error("Error parsing string!"))
     }
 
+    fn eat_number(&mut self) -> Result<TokenKind, ParseTokenError> {
+        while is_digit(self.peek_n(1)) {
+            self.advance();
+        }
+
+        if self.peek_n(1) == b'.' && is_digit(self.peek_n(2)) {
+            self.advance();
+
+            while is_digit(self.peek_n(1)) {
+                self.advance();
+            }
+        }
+
+        if let Some(lit_bytes) = self.source.get(self.start..self.current) {
+            if let Ok(lit_string) = String::from_utf8(lit_bytes.to_vec()) {
+                self.swap = Some(lit_string);
+                return Ok(TokenKind::Num);
+            }
+        }
+
+        Err(self.parse_error("Error parsing number!"))
+    }
+
+    fn eat_identifier(&mut self) -> Result<TokenKind, ParseTokenError> {
+        while is_identifier_char(self.peek_n(1)) {
+            self.advance();
+        }
+
+        if let Some(lit_bytes) = self.source.get(self.start..self.current) {
+            if let Ok(lit_string) = String::from_utf8(lit_bytes.to_vec()) {
+                let token_kind;
+                if let Some(keyword_kind) = KEYWORDS.get(lit_string.as_str()) {
+                    token_kind = keyword_kind.to_owned();
+                } else {
+                    token_kind = TokenKind::Identifier;
+                }
+                self.swap = Some(lit_string);
+                return Ok(token_kind);
+            }
+        }
+
+        Err(self.parse_error("Error parsing identifier!"))
+    }
+
     fn start_match(&mut self) -> Result<Token, ParseTokenError> {
         let b = self.advance();
         let token_kind = match b {
@@ -131,12 +198,16 @@ impl<'a> Lexer<'a> {
             b'=' => self.check_double(b'=', TokenKind::EqualEqual, TokenKind::Equal),
             b'>' => self.check_double(b'=', TokenKind::GreaterEqual, TokenKind::Greater),
             b'<' => self.check_double(b'=', TokenKind::LessEqual, TokenKind::Greater),
+            b'&' => self.check_double(b'&', TokenKind::AmpersandAmpersand, TokenKind::Ampersand),
+            b'|' => self.check_double(b'|', TokenKind::BarBar, TokenKind::Bar),
             b'/' => self.check_comment(),
             b'\n' => self.eat_whitespace(true),
             b' ' => self.eat_whitespace(false),
             b'\r' => self.eat_whitespace(false),
             b'\t' => self.eat_whitespace(false),
             b'"' => self.eat_string()?,
+            d if is_digit(d) => self.eat_number()?,
+            a if is_identifier_start(a) => self.eat_identifier()?,
             e => {
                 return Err(self.parse_error(&format!(
                     "Error parsing unknown character {}",

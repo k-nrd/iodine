@@ -6,7 +6,7 @@ pub struct Token {
     pub col: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum TokenKind {
     // Single character tokens.
     LeftParen,
@@ -30,6 +30,10 @@ pub enum TokenKind {
     GreaterEqual,
     Less,
     LessEqual,
+    Ampersand,
+    AmpersandAmpersand,
+    Bar,
+    BarBar,
 
     // Literals.
     Identifier,
@@ -37,23 +41,16 @@ pub enum TokenKind {
     Num,
 
     // Keywords
-    And,
-    Class,
-    Else,
-    False,
-    Fun,
-    For,
-    If,
-    Nil,
-    Or,
-    Print,
-    Return,
-    Super,
-    This,
-    True,
     Const,
     Let,
-    While,
+    True,
+    False,
+    Function,
+    Return,
+    For,
+    If,
+    Else,
+    Print,
 
     Whitespace,
     Comment,
