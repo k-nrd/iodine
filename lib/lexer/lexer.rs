@@ -96,14 +96,23 @@ impl<'a> Lexer<'a> {
         double
     }
 
-    fn check_comment(&mut self) -> TokenKind {
+    fn eat_comment(&mut self) -> Result<TokenKind, ParseTokenError> {
         if self.peek_n(1) != b'/' {
-            return TokenKind::Slash;
+            return Ok(TokenKind::Slash);
         }
+
         while self.peek_n(1) != b'\n' && !self.at_eof() {
             self.advance();
         }
-        TokenKind::Comment
+
+        if let Some(lit_bytes) = self.source.get(self.start + 2..self.current) {
+            if let Ok(lit_string) = String::from_utf8(lit_bytes.to_vec()) {
+                self.swap = Some(lit_string);
+                return Ok(TokenKind::Comment);
+            }
+        }
+
+        Err(self.parse_error("Error parsing comment!"))
     }
 
     fn eat_whitespace(&mut self, newline: bool) -> TokenKind {
@@ -200,7 +209,7 @@ impl<'a> Lexer<'a> {
             b'<' => self.check_double(b'=', TokenKind::LessEqual, TokenKind::Greater),
             b'&' => self.check_double(b'&', TokenKind::AmpersandAmpersand, TokenKind::Ampersand),
             b'|' => self.check_double(b'|', TokenKind::BarBar, TokenKind::Bar),
-            b'/' => self.check_comment(),
+            b'/' => self.eat_comment()?,
             b'\n' => self.eat_whitespace(true),
             b' ' => self.eat_whitespace(false),
             b'\r' => self.eat_whitespace(false),
