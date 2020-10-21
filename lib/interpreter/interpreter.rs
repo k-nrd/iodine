@@ -1,11 +1,13 @@
 use crate::lexer::Lexer;
+use crate::parser::Parser;
 use crate::BoxError;
 
 pub fn eval(input: String) -> Result<(), BoxError> {
     let tokens = Lexer::new(input.as_bytes()).tokenize()?;
+    let ast = Parser::new(tokens).generate_ast()?;
 
-    for token in tokens {
-        println!("{:#?}", token);
+    for expr in ast {
+        println!("{:#?}", expr);
     }
 
     Ok(())
