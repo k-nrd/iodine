@@ -2,15 +2,15 @@ use super::{LexerError, ParseTokenError, Token, TokenKind};
 use phf::phf_map;
 
 static KEYWORDS: phf::Map<&'static str, TokenKind> = phf_map! {
-    "const" => TokenKind::Const,
     "let" => TokenKind::Let,
     "true" => TokenKind::True,
     "false" => TokenKind::False,
-    "fn" => TokenKind::Function,
-    "return" => TokenKind::Return,
-    "for" => TokenKind::For,
     "if" => TokenKind::If,
     "else" => TokenKind::Else,
+    "type" => TokenKind::Type,
+    "import" => TokenKind::Import,
+    "from" => TokenKind::From,
+    "export" => TokenKind::Export,
     "print" => TokenKind::Print,
 };
 
@@ -190,13 +190,15 @@ impl<'a> Lexer<'a> {
         Err(self.parse_error("Error parsing identifier!"))
     }
 
-    fn start_match(&mut self) -> Result<Token, ParseTokenError> {
+    fn match_token(&mut self) -> Result<Token, ParseTokenError> {
         let b = self.advance();
         let token_kind = match b {
             b'(' => TokenKind::LeftParen,
             b')' => TokenKind::RightParen,
             b'{' => TokenKind::LeftBrace,
-            b'}' => TokenKind::RightParen,
+            b'}' => TokenKind::RightBrace,
+            b'[' => TokenKind::LeftBracket,
+            b']' => TokenKind::RightBracket,
             b',' => TokenKind::Comma,
             b'.' => TokenKind::Dot,
             b'-' => TokenKind::Minus,
@@ -238,7 +240,7 @@ impl<'a> Lexer<'a> {
             self.col = self.start as u32 + 1;
             self.swap = None;
 
-            match self.start_match() {
+            match self.match_token() {
                 Ok(tok) => tokens.push(tok),
                 Err(lex_err) => {
                     has_err = true;

@@ -1,11 +1,11 @@
 use clap::{App, Arg};
-use iodine_lib::{interpreter, repl::REPL, BoxError};
+use lightscript_lib::{interpreter, repl::REPL, BoxError};
 
 fn main() -> Result<(), BoxError> {
-    let matches = App::new("Iodine REPL")
+    let matches = App::new("LightScript")
         .version("0.0.1")
         .author("Gustavo K. <g.konrad@outlook.com>")
-        .about("A language inspired by Box Nystrom's Lox")
+        .about("The good parts of JavaScript + a Hindley-Milner type system.")
         .arg(
             Arg::with_name("file")
                 .short("f")

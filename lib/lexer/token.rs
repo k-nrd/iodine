@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub literal: Option<String>,
@@ -15,6 +15,8 @@ pub enum TokenKind {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
     Comma,
     Dot,
     Minus,
@@ -43,15 +45,15 @@ pub enum TokenKind {
     Num,
 
     // Keywords
-    Const,
     Let,
     True,
     False,
-    Function,
-    Return,
-    For,
     If,
     Else,
+    Type,
+    Import,
+    From,
+    Export,
     Print,
 
     Whitespace,
@@ -66,6 +68,8 @@ impl fmt::Display for Token {
             TokenKind::RightParen => write!(f, ")"),
             TokenKind::LeftBrace => write!(f, "{{"),
             TokenKind::RightBrace => write!(f, "}}"),
+            TokenKind::LeftBracket => write!(f, "["),
+            TokenKind::RightBracket => write!(f, "]"),
             TokenKind::Comma => write!(f, ","),
             TokenKind::Dot => write!(f, "."),
             TokenKind::Minus => write!(f, "-"),
@@ -100,15 +104,15 @@ impl fmt::Display for Token {
                 "{}",
                 self.literal.to_owned().expect("Number has no literal!")
             ),
-            TokenKind::Const => write!(f, "const"),
             TokenKind::Let => write!(f, "let"),
             TokenKind::True => write!(f, "true"),
             TokenKind::False => write!(f, "false"),
-            TokenKind::Function => write!(f, "fn"),
-            TokenKind::Return => write!(f, "return"),
-            TokenKind::For => write!(f, "for"),
             TokenKind::If => write!(f, "if"),
             TokenKind::Else => write!(f, "else"),
+            TokenKind::Type => write!(f, "type"),
+            TokenKind::Import => write!(f, "import"),
+            TokenKind::From => write!(f, "from"),
+            TokenKind::Export => write!(f, "export"),
             TokenKind::Print => write!(f, "print"),
             TokenKind::Whitespace => write!(f, " "),
             TokenKind::Comment => {

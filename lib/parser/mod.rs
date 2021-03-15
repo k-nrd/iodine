@@ -1,4 +1,4 @@
-pub mod expression;
+mod expression;
 pub mod parser;
 
-pub use parser::Parser;
+pub use expression::Expression;

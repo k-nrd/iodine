@@ -1,5 +1,5 @@
 [package]
-name = "iodine"
+name = "lightscript"
 version = "0.1.0"
 authors = ["Gustavo Konrad <g.konrad@outlook.com>"]
 edition = "2018"
@@ -12,5 +12,5 @@ thiserror = "1.0.21"
 phf = { version = "0.8", features = ["macros"] }
 
 [lib]
-name = "iodine_lib"
-path = "lib/iodine.rs"
+name = "lightscript_lib"
+path = "lib/lightscript.rs"
